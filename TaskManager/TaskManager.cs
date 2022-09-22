@@ -1,5 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Management;
@@ -177,7 +181,66 @@ namespace TaskManager
         }
         private void TaskManager_Load(object sender, EventArgs e)
         {
-            //renderProcessesOnListView();
+            renderProcessesOnListView();
+        }
+        /// <summary>
+        /// Este método representa todos los procesos de Windows en un ListView con algunos valores e iconos.
+        /// </summary>
+        public void renderProcessesOnListView()
+        {
+            listView1.Items.Clear();
+
+
+            ImageList Imagelist = new ImageList();
+            foreach (Process process in processList)
+            {
+                try
+                {
+                    GetProcessIoCounters(process.Handle, out counters);
+                }
+                catch { }
+
+                string status = (process.Responding == true ? "Responding" : "Not responding");
+                dynamic extraProcessInfo = GetProcessExtraInformation(process.Id);
+
+                string[] row = {
+
+                    process.ProcessName,  //1
+                    process.Id.ToString(), //2
+                    status, //3
+                    extraProcessInfo.Username, //4
+                    BytesToReadableValue(process.PrivateMemorySize64), //5
+                    extraProcessInfo.Description,
+                    process.SessionId.ToString() + " thread",
+                    BytesToReadableValue(counters.ReadTransferCount)
+            };
+
+                try
+                {
+                    Imagelist.Images.Add(
+                        process.Id.ToString(),
+                        Icon.ExtractAssociatedIcon(process.MainModule.FileName).ToBitmap()
+                        );
+                }
+                catch { }
+
+                // Crea un nuevo elemento para agregar a la vista de lista que espera la fila de información como primer argumento
+                ListViewItem item = new ListViewItem(row)
+
+                {
+                    // Establezca el ImageIndex del elemento como el mismo definido en el try-catch anterior
+                    ImageIndex = Imagelist.Images.IndexOfKey(process.Id.ToString())
+
+                };
+
+                // Agrega el artículo
+                listView1.Items.Add(item);
+            }
+
+            // Configura la lista de imágenes de su lista para ver la lista creada anteriormente :)
+            listView1.LargeImageList = Imagelist;
+            listView1.SmallImageList = Imagelist;
+
         }
 
 
@@ -297,7 +360,7 @@ namespace TaskManager
 
         private void BTNRefresh_Click(object sender, EventArgs e)
         {
-            //renderProcessesOnListView();
+            renderProcessesOnListView();
         }
 
         private void BTNProcesos_Click(object sender, EventArgs e)
